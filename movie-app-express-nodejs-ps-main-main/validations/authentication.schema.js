@@ -10,7 +10,7 @@ const signUpSchema = Joi.object({
   user_password: Joi.string()
     .pattern(new RegExp("^[a-zA-Z0-9!@#$%^&*_=+-]{8,20}$"))
     .required(),
-  phone_no: Joi.number(),
+  phone_no: Joi.string().pattern(new RegExp("^[0-9]{7,15}$")),
 });
 
 const updateUserSchema = Joi.object({

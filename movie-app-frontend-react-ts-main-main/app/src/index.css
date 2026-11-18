@@ -404,6 +404,10 @@ input {
   gap: 16px;
 }
 
+.auth-fields-single {
+  grid-template-columns: 1fr;
+}
+
 .auth-field {
   display: flex;
   flex-direction: column;
@@ -449,6 +453,152 @@ input {
 
 .auth-switch a {
   font-weight: 700;
+}
+
+.app-topbar {
+  width: min(1120px, calc(100% - 48px));
+  min-height: 76px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.container {
+  width: min(1120px, calc(100% - 48px));
+  margin: 44px auto;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  background: #19181d;
+}
+
+.movies-heading,
+.movie-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.movies-heading h1 {
+  margin: 10px 0 0;
+  color: #fbf7f0;
+  font-size: 34px;
+  letter-spacing: -0.05em;
+}
+
+.movie-list-toolbar {
+  margin: 22px 0;
+  color: #aaa7aa;
+}
+
+.movie-list-toolbar p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.movie-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 18px;
+}
+
+.movie-card {
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 11px;
+  background: #141318;
+}
+
+.movie-card-art {
+  min-height: 130px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 70%, rgba(245, 180, 122, 0.5), transparent 28%),
+    linear-gradient(145deg, #714538, #292033 70%);
+  color: rgba(255, 245, 230, 0.72);
+  font-family: Georgia, serif;
+  font-size: 34px;
+  font-style: italic;
+}
+
+.movie-card-content {
+  padding: 16px;
+}
+
+.movie-card-content h2 {
+  margin: 0;
+  color: #fbf7f0;
+  font-size: 18px;
+}
+
+.movie-card-content > p {
+  margin: 6px 0 16px;
+  color: #aaa7aa;
+  font-size: 13px;
+}
+
+.movie-card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.movie-card-actions .button {
+  min-height: 38px;
+  flex: 1;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.button-danger {
+  border-color: rgba(255, 142, 134, 0.35);
+  background: rgba(255, 142, 134, 0.1);
+  color: #ffaaa3;
+  cursor: pointer;
+}
+
+.button-danger:hover:not(:disabled) {
+  background: rgba(255, 142, 134, 0.2);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.empty-state {
+  padding: 52px 20px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.empty-state h2 {
+  margin: 0;
+  color: #fbf7f0;
+}
+
+.empty-state p,
+.success-msg {
+  color: #aaa7aa;
+}
+
+.movie-editor {
+  width: min(100%, 560px);
+  margin: 0 auto;
+}
+
+.movie-form {
+  display: grid;
+  gap: 18px;
+}
+
+.movie-form .auth-submit {
+  margin-top: 4px;
 }
 
 .invalid-feedback,
@@ -571,6 +721,27 @@ svg {
 
   .auth-card {
     padding: 24px 20px;
+  }
+
+  .app-topbar {
+    width: calc(100% - 36px);
+    min-height: 66px;
+  }
+
+  .container {
+    width: calc(100% - 36px);
+    margin: 24px auto;
+    padding: 20px 16px;
+  }
+
+  .movies-heading,
+  .movie-list-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .movie-list-toolbar {
+    gap: 12px;
   }
 
   .auth-fields {

@@ -1,12 +1,12 @@
 export interface Movie {
-  id: number;
-  title: string;
-  year: number;
+  movie_id: string;
+  movie_name: string;
+  year: number | null;
 }
 export interface Items {
-  id: number;
-  item_name: string;
-  item_conent: number;
+  movie_id: string;
+  movie_name: string;
+  year: number | null;
 }
 export interface Movie1 {
   title: string;

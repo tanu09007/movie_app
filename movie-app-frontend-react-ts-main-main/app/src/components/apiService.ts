@@ -1,64 +1,108 @@
 import axios from "axios";
-import { Movie1, Items } from "../types";
-import { AxiosResponse } from "axios";
+import { Items, Movie1 } from "../types";
 
-const API_BASE_URL = "http://localhost:4001";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5678";
 
 export const AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
 });
-const apiService = axios.create({
-  baseURL: API_BASE_URL,
+
+AxiosInstance.interceptors.request.use((config) => {
+  const accessToken = localStorage.getItem("token");
+
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
 });
 
-export const getMovies = async (): Promise<Items[]> => {
-  const response: AxiosResponse<Items[]> = await apiService.get("/items");
-  return response.data;
+interface ApiErrorResponse {
+  message?: string | string[];
+  error?: string;
+}
+
+interface SignupPayload {
+  first_name: string;
+  last_name: string;
+  user_name: string;
+  email: string;
+  user_password: string;
+  phone_no: string;
+}
+
+interface LoginPayload {
+  user_name: string;
+  user_password: string;
+}
+
+export const getApiErrorMessage = (
+  error: unknown,
+  fallback: string
+): string => {
+  if (axios.isAxiosError<ApiErrorResponse>(error)) {
+    const message = error.response?.data?.message ?? error.response?.data?.error;
+    if (Array.isArray(message)) {
+      return message.join(" ");
+    }
+    if (message) {
+      return message;
+    }
+  }
+
+  return error instanceof Error ? error.message : fallback;
 };
 
-export const createMovie = async (movie: Movie1): Promise<Movie1> => {
-  const response: AxiosResponse<Movie1> = await apiService.post(
-    "/movies",
-    movie
+export const signupUser = async (payload: SignupPayload): Promise<void> => {
+  await AxiosInstance.post("/signup", payload);
+};
+
+export const loginUser = async (
+  payload: LoginPayload
+): Promise<{ token: string }> => {
+  const response = await AxiosInstance.post<{ token: string }>(
+    "/login",
+    payload
   );
   return response.data;
 };
 
-export const updateMovie = async (id: string, movieData: Movie1) => {
-  const response = await axios.put(`${API_BASE_URL}/movies/${id}`, movieData);
+export const getMovies = async (): Promise<Items[]> => {
+  const response = await AxiosInstance.get<{ movies: Items[] }>("/movies");
+  return response.data.movies;
+};
+
+const toApiMovie = (movie: Movie1) => ({
+  movie_name: movie.title,
+  year: movie.year,
+});
+
+export const createMovie = async (movie: Movie1): Promise<Items> => {
+  const response = await AxiosInstance.post<Items>("/movies", toApiMovie(movie));
   return response.data;
 };
-export const deleteMovie = async (id: number): Promise<void> => {
-  await apiService.delete(`/movies/${id}`);
-};
-export const getMovieById = async (id: string) => {
-  const response = await axios.get(`${API_BASE_URL}/movies/${id}`);
+
+export const updateMovie = async (
+  id: string,
+  movieData: Movie1
+): Promise<Items> => {
+  const response = await AxiosInstance.put<Items>(
+    `/movies/${encodeURIComponent(id)}`,
+    toApiMovie(movieData)
+  );
   return response.data;
 };
 
-// Request interceptor
-AxiosInstance.interceptors.request.use(
-  (config) => {
-    const accessToken = localStorage.getItem("token");
+export const deleteMovie = async (id: string): Promise<void> => {
+  await AxiosInstance.delete(`/movies/${encodeURIComponent(id)}`);
+};
 
-    if (accessToken) {
-      config.headers["Authorization"] = "Bearer " + accessToken;
-    }
-    return config;
-  },
-  (error: any) => {
-    console.log("token not found");
-
-    return Promise.reject(error);
-  }
-);
-AxiosInstance.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  function (error: any) {
-    console.log("unauthorised");
-
-    return Promise.reject(error);
-  }
-);
+export const getMovieById = async (id: string): Promise<Movie1> => {
+  const response = await AxiosInstance.get<Items>(
+    `/movies/${encodeURIComponent(id)}`
+  );
+  return {
+    title: response.data.movie_name,
+    year: response.data.year ?? new Date().getFullYear(),
+  };
+};

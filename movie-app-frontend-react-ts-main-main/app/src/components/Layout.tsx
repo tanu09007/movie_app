@@ -1,14 +1,38 @@
 import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import type { ReactNode } from "react";
 
-const Layout = (props: any) => {
+interface LayoutProps {
+  title: string;
+  children: ReactNode;
+}
+
+const Layout = ({ title, children }: LayoutProps) => {
+  const navigate = useNavigate();
+
   useEffect(() => {
-    if (props.title) {
-      document.title = props.title;
-    }
-  }, [props.title]);
+    document.title = title;
+  }, [title]);
+
+  const handleSignout = () => {
+    localStorage.removeItem("token");
+    navigate("/login", { replace: true });
+  };
+
   return (
     <>
-      <div className="container">{props.children}</div>
+      <header className="app-topbar">
+        <Link className="wordmark" to="/movielist">
+          <span className="wordmark-icon" aria-hidden="true">
+            M
+          </span>
+          MOVIE CLUB
+        </Link>
+        <button className="button button-outline" onClick={handleSignout}>
+          Sign out
+        </button>
+      </header>
+      <main className="container">{children}</main>
     </>
   );
 };

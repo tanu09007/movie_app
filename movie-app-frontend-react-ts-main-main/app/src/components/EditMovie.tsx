@@ -1,78 +1,96 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Movie1 } from "../types";
+import {
+  getApiErrorMessage,
+  getMovieById,
+  updateMovie,
+} from "./apiService";
 import Layout from "./Layout";
 import MovieForm from "./MovieForm";
-import { Movie1 } from "../types";
-import { updateMovie, getMovieById } from "./apiService";
-import { useParams } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import Modal1 from "./Checkmodal";
-import { useModal } from "./Checkmodal";
+import Loading from "./loader/Loading";
+
 const EditMovie: React.FC = () => {
   const navigate = useNavigate();
-
   const { id } = useParams();
-  const [movieTitle, setMovieTitle] = useState("");
   const [initialMovie, setInitialMovie] = useState<Movie1 | null>(null);
-  const [error, setError] = useState(null);
-  const { isOpen, toggle } = useModal();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    async function getMovies() {
+    let active = true;
+
+    async function loadMovie() {
+      if (!id) {
+        setError("Movie id is missing.");
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        if (id) {
-          const response = await getMovieById(id);
-          setMovieTitle(response.title);
-          setInitialMovie(response);
-          console.log(response);
+        const movie = await getMovieById(id);
+        if (active) {
+          setInitialMovie(movie);
         }
-      } catch (error) {
-        console.log(error);
+      } catch (requestError: unknown) {
+        if (active) {
+          setError(getApiErrorMessage(requestError, "Unable to load movie."));
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
       }
     }
-    getMovies();
+
+    loadMovie();
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   const handleMovieUpdated = async (movie: Movie1) => {
+    if (!id) {
+      setError("Movie id is missing.");
+      return;
+    }
+
+    setError("");
     try {
-      if (id) {
-        await updateMovie(id, movie);
-        console.log("Movie updated:", movie);
-        // setDialog(true);
-        toggle();
-      }
-    } catch (error: any) {
-      console.error("Error updating movie:", error.response.data.message);
-      setError(error.response.data.message);
-      toggle();
+      await updateMovie(id, movie);
+      navigate("/movielist");
+    } catch (requestError: unknown) {
+      setError(getApiErrorMessage(requestError, "Unable to update movie."));
     }
   };
-  function handlecancel() {
-    toggle();
-    navigate("/");
-  }
+
   return (
-    <Layout title={`Edit/ ${movieTitle}`}>
-      <h2 className="edit-title">Edit movie</h2>
-      {initialMovie && (
-        <MovieForm onSubmit={handleMovieUpdated} initialMovie={initialMovie} />
-      )}
-      <Modal1 isOpen={isOpen} toggle={toggle}>
-        {error ? (
-          <>
-            <p> {error}</p>
-          </>
-        ) : (
-          <>
-            <p> movie update successfully</p>
-          </>
+    <Layout title="Edit movie">
+      <section className="movie-editor">
+        <Link className="auth-back" to="/movielist">
+          <span aria-hidden="true">←</span> Back to my movies
+        </Link>
+        <div className="auth-heading">
+          <p className="eyebrow">UPDATE YOUR COLLECTION</p>
+          <h1>Edit movie</h1>
+          <p>Update the title or release year.</p>
+        </div>
+        {error && (
+          <p className="error-msg" role="alert">
+            {error}
+          </p>
         )}
-        <footer>
-          <button onClick={handlecancel}>ok </button>
-        </footer>
-      </Modal1>
-      <button onClick={() => navigate("/")} className="home-add-btn">
-        Back
-      </button>
+        {isLoading ? (
+          <Loading />
+        ) : (
+          initialMovie && (
+            <MovieForm
+              onSubmit={handleMovieUpdated}
+              initialMovie={initialMovie}
+            />
+          )
+        )}
+      </section>
     </Layout>
   );
 };

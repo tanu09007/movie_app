@@ -1,119 +1,135 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
 import { Items } from "../types";
 import Layout from "./Layout";
-import { deleteMovie, getMovies } from "./apiService";
+import { deleteMovie, getApiErrorMessage, getMovies } from "./apiService";
 import Loading from "./loader/Loading";
-import { useModal } from "./Checkmodal";
-import Modal1 from "./Checkmodal";
+
 const MovieList: React.FC = () => {
-  const navigate = useNavigate();
   const [movies, setMovies] = useState<Items[]>([]);
-  const [refresh, setRefresh] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
-  const { isOpen, toggle } = useModal();
+  const [refresh, setRefresh] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingMovieId, setLoadingMovieId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    async function getMoviesFromAPI() {
+    let active = true;
+
+    async function loadMovies() {
       setIsLoading(true);
+      setError("");
       try {
         const response = await getMovies();
-
-        setMovies(response);
-      } catch (error) {
-        console.log(error);
+        if (active) {
+          setMovies(response);
+        }
+      } catch (requestError: unknown) {
+        if (active) {
+          setError(getApiErrorMessage(requestError, "Unable to load movies."));
+        }
       } finally {
-        setIsLoading(false);
+        if (active) {
+          setIsLoading(false);
+        }
       }
     }
-    getMoviesFromAPI();
+
+    loadMovies();
+    return () => {
+      active = false;
+    };
   }, [refresh]);
-  const handleDelete = async (id: number) => {
+
+  const handleDelete = async (id: string) => {
     setLoadingMovieId(id);
+    setError("");
+    setNotice("");
 
     try {
       await deleteMovie(id);
-      console.log("movie deleted:", id);
-      toggle();
-    } catch (error: any) {
-      console.error("Error deleting movie:", error.message);
-      setError(error.response.data.message);
+      setNotice("Movie deleted.");
+      setRefresh((current) => current + 1);
+    } catch (requestError: unknown) {
+      setError(getApiErrorMessage(requestError, "Unable to delete movie."));
     } finally {
       setLoadingMovieId(null);
     }
   };
-  function handlecancel() {
-    setRefresh(true);
-    toggle();
-    navigate("/");
-  }
 
   return (
-    <Layout title="movies">
-      <h1>movielist</h1>
-      <button onClick={() => navigate("/add")} className="home-add-btn">
-        <i className="fa fa-plus kkk"> </i>
-      </button>
-      {isLoading ? (
-        <>
-          <Loading></Loading>
-        </>
-      ) : (
-        <>
-          <button
-            disabled={isLoading}
-            onClick={() => setRefresh((prev) => !prev)}
-          >
-            refresh list
-          </button>
-          <div className="flex">
-            {movies.map((movie) => (
-              <div key={movie.id}>
-                <div>
-                  <h2>item_name- {movie.item_name}</h2>
-                  <h3> item_content: {movie.item_conent}</h3>
-                  <div className="btn-wrap">
-                    <button className="edit-btn">
-                      <Link to={`/edit/${movie.id}`}>
-                        <i className="fa fa-edit"> </i>
-                      </Link>
-                    </button>
+    <Layout title="My movies">
+      <header className="movies-heading">
+        <div>
+          <p className="eyebrow">YOUR COLLECTION</p>
+          <h1>My movies</h1>
+        </div>
+        <Link className="button button-primary" to="/add">
+          Add a movie <span aria-hidden="true">+</span>
+        </Link>
+      </header>
 
-                    {loadingMovieId === movie.id ? (
-                      <Loading></Loading>
-                    ) : (
-                      <button
-                        className="delete-btn"
-                        onClick={() => handleDelete(movie.id)}
-                      >
-                        <i className="fa fa-trash-o"></i>{" "}
-                      </button>
-                    )}
-                  </div>
+      <div className="movie-list-toolbar">
+        <p>Keep track of the stories you want to remember.</p>
+        <button
+          className="button button-outline"
+          disabled={isLoading}
+          onClick={() => setRefresh((current) => current + 1)}
+        >
+          Refresh
+        </button>
+      </div>
+
+      {error && (
+        <p className="error-msg" role="alert">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p className="success-msg" role="status">
+          {notice}
+        </p>
+      )}
+
+      {isLoading ? (
+        <Loading />
+      ) : movies.length === 0 ? (
+        <div className="empty-state">
+          <h2>No movies yet</h2>
+          <p>Add your first movie to start your collection.</p>
+        </div>
+      ) : (
+        <div className="movie-grid">
+          {movies.map((movie) => (
+            <article className="movie-card" key={movie.movie_id}>
+              <div className="movie-card-art" aria-hidden="true">
+                <span>MC</span>
+              </div>
+              <div className="movie-card-content">
+                <h2>{movie.movie_name}</h2>
+                <p>{movie.year || "Year not set"}</p>
+                <div className="movie-card-actions">
+                  <Link
+                    className="button button-outline"
+                    to={`/edit/${movie.movie_id}`}
+                  >
+                    Edit
+                  </Link>
+                  <button
+                    className="button button-danger"
+                    disabled={loadingMovieId === movie.movie_id}
+                    onClick={() => handleDelete(movie.movie_id)}
+                  >
+                    {loadingMovieId === movie.movie_id ? "Deleting..." : "Delete"}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-          <Modal1 isOpen={isOpen} toggle={toggle}>
-            {error ? (
-              <>
-                <p> {error}</p>
-              </>
-            ) : (
-              <>
-                <p> movie deleted successfully</p>
-              </>
-            )}
-            <footer>
-              <button onClick={handlecancel}>ok </button>
-            </footer>
-          </Modal1>
-        </>
+            </article>
+          ))}
+        </div>
       )}
     </Layout>
   );
 };
+
 export default MovieList;

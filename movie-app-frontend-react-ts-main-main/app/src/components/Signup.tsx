@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useModal } from "./Checkmodal";
 import Modal1 from "./Checkmodal";
 
 import { Link, useNavigate } from "react-router-dom";
+import { getApiErrorMessage, signupUser } from "./apiService";
 // import { useForm } from "react-hook-form";
 // import { yupResolver } from "@hookform/resolvers/yup";
 // import * as Yup from "yup";
@@ -13,7 +13,7 @@ interface SignUpFormState {
   user_name: string;
   email: string;
   user_password: string;
-  phone_no: number | "";
+  phone_no: string;
 }
 // type UserSubmitForm = {
 //   first_name: string;
@@ -26,6 +26,8 @@ interface SignUpFormState {
 const Signup: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { isOpen, toggle } = useModal();
 
   const [formData, setFormData] = useState<SignUpFormState>({
@@ -69,29 +71,27 @@ const Signup: React.FC = () => {
     setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
+    setIsSubmitting(true);
     try {
-      const response = await axios.post(
-        "http://localhost:4001/signup",
-        formData
-      );
-      console.log(formData);
-      console.log(response);
-    } catch (error: any) {
-      console.log(error);
-      setError(error.response.data.message);
+      await signupUser(formData);
+      setIsSuccess(true);
+    } catch (error: unknown) {
+      setIsSuccess(false);
+      setError(getApiErrorMessage(error, "Unable to create account."));
     } finally {
+      setIsSubmitting(false);
       toggle();
     }
   };
   function handlecancel() {
     toggle();
-    navigate("/Login");
+    navigate("/login");
   }
   function handleError() {
     toggle();
-    navigate("/");
   }
 
   return (
@@ -173,18 +173,26 @@ const Signup: React.FC = () => {
             <div className="auth-field">
               <label htmlFor="phone_no">Phone number</label>
               <input
-                type="number"
+                type="tel"
                 name="phone_no"
                 id="phone_no"
                 onChange={handleChange}
                 value={formData.phone_no}
                 required
                 maxLength={15}
+                minLength={7}
+                pattern="[0-9]{7,15}"
+                autoComplete="tel"
               />
             </div>
           </div>
-          <button className="button button-primary auth-submit" type="submit">
-            Create account <span aria-hidden="true">→</span>
+          <button
+            className="button button-primary auth-submit"
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Creating account..." : "Create account"}
+            {!isSubmitting && <span aria-hidden="true">→</span>}
           </button>
           <p className="auth-switch">
             Already have an account? <Link to="/login">Sign in</Link>
@@ -192,7 +200,7 @@ const Signup: React.FC = () => {
         </form>
       </section>
       <Modal1 isOpen={isOpen} toggle={toggle}>
-        {error ? (
+        {!isSuccess ? (
           <>
             <p className="error-msg"> {error}</p>
             <footer>
@@ -201,7 +209,7 @@ const Signup: React.FC = () => {
           </>
         ) : (
           <>
-            <p> user signup successfully</p>
+            <p>Account created. You can now sign in.</p>
             <footer>
               <button onClick={handlecancel}>ok </button>
             </footer>

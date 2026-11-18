@@ -1,21 +1,28 @@
 const express = require("express");
 const router = express.Router();
-const getRouter = express.Router({ mergeParams: true });
 
 const {
   addMovieController,
   updateMovieController,
   getallMoviescontroller,
   getbysingleitemcontroller,
+  deleteMovieController,
 } = require("../controllers/movies.controller");
 
 const { isAuthorised } = require("../middlewares/authorisation.middleware");
+const { validate } = require("../middlewares/validate.middleware");
+const { movieSchema } = require("../validations/movie.schema");
 
-router.use("/", isAuthorised, getRouter);
-getRouter.get("/movies", getallMoviescontroller);
-getRouter.post("/add-movie", addMovieController);
-getRouter.put("/update-movie", updateMovieController);
-getRouter.get("/one-movie", getbysingleitemcontroller);
+router.get("/movies", isAuthorised, getallMoviescontroller);
+router.post("/movies", isAuthorised, validate(movieSchema), addMovieController);
+router.get("/movies/:movieId", isAuthorised, getbysingleitemcontroller);
+router.put(
+  "/movies/:movieId",
+  isAuthorised,
+  validate(movieSchema),
+  updateMovieController
+);
+router.delete("/movies/:movieId", isAuthorised, deleteMovieController);
 
 // //VIEW THE USER DATA
 

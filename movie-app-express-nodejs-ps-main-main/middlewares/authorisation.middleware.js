@@ -1,32 +1,41 @@
 const jwt = require("jsonwebtoken");
 const config = require("../config/config");
-const { sequelize, models, Sequelize } = require("../config/sequelize-config");
+const { models } = require("../config/sequelize-config");
 
 module.exports = {
   isAuthorised: async (req, res, next) => {
-    try {
-      let token = req.headers.Authorization || req.headers.authorization;
+    const authorization = req.get("authorization");
+    if (!authorization || !authorization.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Authentication required." });
+    }
 
-      if (token) {
-        token = token.substr("Bearer ".length);
-        const decoded = await jwt.verify(token, config.jwtSecret);
-        req.decoded = decoded;
-        let auth_token = await models.users.findOne({
-          where: {
-            user_id: req.query.user_id || req.decoded.user_id,
-          },
-          returning: true,
-        });
-        if (!auth_token) {
-          return res.status(401).send("unauthorised not decoded");
-        }
-        req.decoded = decoded;
-        return next();
-      }
-      return res.status(401).send("unauthorised or no token");
+    const token = authorization.slice("Bearer ".length).trim();
+    if (!token) {
+      return res.status(401).json({ message: "Authentication required." });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, config.jwtSecret);
     } catch (error) {
-      console.log("\n isAuthorised error...", error);
-      return res.status(401).send("unauthorised");
+      return res.status(401).json({ message: "Authentication required." });
+    }
+
+    try {
+      const user = await models.users.findOne({
+        where: { user_id: decoded.user_id },
+        attributes: ["user_id"],
+      });
+
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required." });
+      }
+
+      req.decoded = decoded;
+      return next();
+    } catch (error) {
+      console.error("Authentication user lookup failed:", error);
+      return res.status(500).json({ message: "Unable to verify account." });
     }
   },
 };

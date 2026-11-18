@@ -1,113 +1,104 @@
-const { sequelize, models, Sequelize } = require("../config/sequelize-config");
-const rating = require("../models/rating");
+const { models, Sequelize } = require("../config/sequelize-config");
 const Op = Sequelize.Op;
 
 const addMovieController = async (req, res) => {
-  const searchMovies = await models.movies.findAndCountAll({
-    attributes: ["movie_name"],
-    where: {
-      movie_name: req.body.movie_name,
-    },
-    returning: true,
-  });
-  if (searchMovies.count == 0) {
-    try {
-      const movieCreate = await models.movies.create({
-        movie_name: req.body.movie_name,
-        user_id: req.decoded.user_id,
-      });
-      return res.json({
-        movieCreate,
-      });
-    } catch (error) {
-      console.log(error);
-      return res.send(error);
+  try {
+    const existingMovie = await models.movies.findOne({
+      where: { movie_name: req.body.movie_name },
+      attributes: ["movie_id"],
+    });
+    if (existingMovie) {
+      return res.status(409).json({ message: "Movie already exists." });
     }
-  } else {
-    return res.status(400).json({ message: "movie already exists." });
+
+    const movieCreate = await models.movies.create({
+      movie_name: req.body.movie_name,
+      year: req.body.year,
+      user_id: req.decoded.user_id,
+    });
+    return res.status(201).json(movieCreate);
+  } catch (error) {
+    console.error("Movie creation failed:", error);
+    return res.status(500).json({ message: "Unable to create movie." });
   }
 };
-// update item content
+
 const updateMovieController = async (req, res) => {
   try {
-    const itemsUpdate = await models.movies.update(
+    const [updatedCount, updatedMovies] = await models.movies.update(
       {
         movie_name: req.body.movie_name,
-        user_id: req.decoded.user_id,
+        year: req.body.year,
       },
       {
         where: {
-          movie_name: req.query.movie_name || req.params.movie_name,
+          movie_id: req.params.movieId,
+          user_id: req.decoded.user_id,
         },
         returning: true,
       }
     );
-    return res.json({
-      itemsUpdate,
-    });
+
+    if (!updatedCount) {
+      return res.status(404).json({ message: "Movie not found." });
+    }
+    return res.json(updatedMovies[0]);
   } catch (error) {
-    console.log(error);
-    return res.send(error);
+    console.error("Movie update failed:", error);
+    return res.status(500).json({ message: "Unable to update movie." });
   }
 };
-// get all items
+
 const getallMoviescontroller = async (req, res) => {
   try {
     const movies = await models.movies.findAll({
-      attributes: ["movie_name"],
-
-      include: [
-        // {
-        //   model: models.users,
-        //   required: true,
-        //   attributes: ["user_name"],
-        // },
-        {
-          model: models.rating,
-          required: true,
-          attributes: ["rating"],
-        },
-      ],
+      attributes: ["movie_id", "movie_name", "year"],
+      where: { user_id: req.decoded.user_id },
+      order: [["movie_name", "ASC"]],
     });
-    return res.json({
-      movies,
-    });
+    return res.json({ movies });
   } catch (error) {
-    console.log(error);
-    return res.send(error);
+    console.error("Movie list request failed:", error);
+    return res.status(500).json({ message: "Unable to load movies." });
   }
 };
 
-// get single item by id
 const getbysingleitemcontroller = async (req, res) => {
   try {
-    const items = await models.movies.findOne({
+    const movie = await models.movies.findOne({
+      attributes: ["movie_id", "movie_name", "year"],
       where: {
-        movie_id: req.query.movie_id,
+        movie_id: req.params.movieId,
+        user_id: req.decoded.user_id,
       },
-      include: [
-        // {
-        //   model: models.users,
-        //   required: true,
-        //   attributes: ["user_name"],
-        // },
-        {
-          model: models.rating,
-          required: true,
-          attributes: [
-            [Sequelize.fn("AVG", Sequelize.col("rating")), "overall_rating"],
-          ],
-          group: ["movie_id"],
-        },
-      ],
     });
 
-    return res.json({
-      items,
-    });
+    if (!movie) {
+      return res.status(404).json({ message: "Movie not found." });
+    }
+    return res.json(movie);
   } catch (error) {
-    console.log(error);
-    return res.send(error);
+    console.error("Movie lookup failed:", error);
+    return res.status(500).json({ message: "Unable to load movie." });
+  }
+};
+
+const deleteMovieController = async (req, res) => {
+  try {
+    const deletedCount = await models.movies.destroy({
+      where: {
+        movie_id: req.params.movieId,
+        user_id: req.decoded.user_id,
+      },
+    });
+
+    if (!deletedCount) {
+      return res.status(404).json({ message: "Movie not found." });
+    }
+    return res.status(204).end();
+  } catch (error) {
+    console.error("Movie deletion failed:", error);
+    return res.status(500).json({ message: "Unable to delete movie." });
   }
 };
 
@@ -211,6 +202,7 @@ module.exports = {
   updateMovieController,
   getallMoviescontroller,
   getbysingleitemcontroller,
+  deleteMovieController,
   filterItemPricecontroller,
   SearchItemNamecontroller,
   sortItemNameController,

@@ -14,8 +14,8 @@ const envConfigs = {
   test: { ...dbConfig },
   staging: { ...dbConfig },
   uat: { ...dbConfig },
-  port: process.env.PORT,
-  host: process.env.HOST,
+  port: Number(process.env.PORT) || 5678,
+  host: process.env.HOST || "localhost",
   jwtSecret: process.env.JWT_SECRET,
 };
 

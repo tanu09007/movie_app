@@ -13,6 +13,10 @@ module.exports = function model(sequelize, types) {
         defaultValue: "",
         unique: true,
       },
+      year: {
+        type: types.INTEGER,
+        allowNull: true,
+      },
       user_id: {
         type: types.UUID,
         references: {

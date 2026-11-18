@@ -1,5 +1,6 @@
-import { Routes, Route, BrowserRouter } from "react-router-dom";
+import { Routes, Route, BrowserRouter, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import type { ReactNode } from "react";
 const AddMovie = lazy(() => import("./components/AddMovie"));
 const EditMovie = lazy(() => import("./components/EditMovie"));
 const MovieList = lazy(() => import("./components/MovieList"));
@@ -14,6 +15,14 @@ function Load() {
   return <Loading></Loading>;
 }
 
+function RequireAuth({ children }: { children: ReactNode }) {
+  return localStorage.getItem("token") ? (
+    <>{children}</>
+  ) : (
+    <Navigate to="/login" replace />
+  );
+}
+
 function App() {
   return (
     <Suspense fallback={<Load />}>
@@ -25,9 +34,30 @@ function App() {
           <Route path="/kk" element={<KK />} />
           <Route path="/test" element={<Login1 />} />
 
-          <Route path="/movielist" element={<MovieList />} />
-          <Route path="/add" element={<AddMovie />} />
-          <Route path="/edit/:id" element={<EditMovie />} />
+          <Route
+            path="/movielist"
+            element={
+              <RequireAuth>
+                <MovieList />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/add"
+            element={
+              <RequireAuth>
+                <AddMovie />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/edit/:id"
+            element={
+              <RequireAuth>
+                <EditMovie />
+              </RequireAuth>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </Suspense>

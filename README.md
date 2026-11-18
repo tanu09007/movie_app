@@ -19,10 +19,13 @@ npm ci
 Copy-Item .env_sample .env
 ```
 
-Set the PostgreSQL values and a unique `JWT_SECRET` in `.env`, and set
-`PORT=4001` to match the frontend's API URL, then run:
+Create a PostgreSQL database named `movie_app`, then set the PostgreSQL values
+and a unique `JWT_SECRET` in `.env`. The frontend defaults to the API at
+`http://localhost:5678`; set `VITE_API_BASE_URL` in the frontend environment if
+you use a different address. Run the initial migrations and start the API:
 
 ```powershell
+npx sequelize-cli db:migrate
 npm start
 ```
 

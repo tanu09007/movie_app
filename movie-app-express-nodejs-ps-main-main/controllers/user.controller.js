@@ -2,39 +2,45 @@ const config = require("../config/config");
 const { models } = require("../config/sequelize-config");
 const helper = require("../services/helper");
 const jwt = require("jsonwebtoken");
+const { Op } = require("sequelize");
 
 const addUserController = async (req, res) => {
-  const searchUser = await models.users.findAndCountAll({
-    attributes: ["email", "user_name"],
-    where: {
+  try {
+    const searchUser = await models.users.findOne({
+      attributes: ["email", "user_name"],
+      where: {
+        [Op.or]: [{ email: req.body.email }, { user_name: req.body.user_name }],
+      },
+    });
+
+    if (searchUser) {
+      return res
+        .status(409)
+        .json({ message: "Email or username already exists." });
+    }
+
+    const userCreate = await models.users.create({
+      first_name: req.body.first_name,
+      last_name: req.body.last_name,
       email: req.body.email,
       user_name: req.body.user_name,
-    },
-    returning: true,
-  });
+      user_password: req.body.user_password,
+      phone_no: req.body.phone_no,
+    });
 
-  if (searchUser.count == 0) {
-    try {
-      const userCreate = await models.users.create({
-        first_name: req.body.first_name,
-        last_name: req.body.last_name,
-        email: req.body.email,
-        user_name: req.body.user_name,
-        user_password: req.body.user_password,
-        phone_no: req.body.phone_no,
-      });
-      return res.status(200).json({
-        userCreate,
-        message: "user created sucessfully",
-      });
-    } catch (error) {
-      console.log(error);
-      console.log(error.response.message);
-
-      return res.send(error);
-    }
-  } else {
-    return res.status(400).json({ message: "User already exists." });
+    return res.status(201).json({
+      user: {
+        user_id: userCreate.user_id,
+        first_name: userCreate.first_name,
+        last_name: userCreate.last_name,
+        email: userCreate.email,
+        user_name: userCreate.user_name,
+      },
+      message: "User created successfully.",
+    });
+  } catch (error) {
+    console.error("User signup failed:", error);
+    return res.status(500).json({ message: "Unable to create account." });
   }
 };
 
@@ -71,7 +77,7 @@ const updateUserController = async (req, res) => {
 // login
 const loginController = async (req, res, next) => {
   try {
-    searchUser = await models.users.findOne({
+    const searchUser = await models.users.findOne({
       where: {
         user_name: req.body.user_name,
       },
@@ -103,7 +109,8 @@ const loginController = async (req, res, next) => {
       }
     }
   } catch (error) {
-    return res.send(error);
+    console.error("User login failed:", error);
+    return res.status(500).json({ message: "Unable to sign in." });
   }
 };
 const getAccountController = async (req, res, next) => {
